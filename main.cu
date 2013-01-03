@@ -44,18 +44,17 @@ struct force {
 		fx = probe_x - q.x;
 		fy = probe_y - q.y;
 
-		float l = length();
-		if (l <= minDistance) {
-			return;
-		}
+		float l = length2();
+		//if (l <= minDistance)
+		//	return;
 
-		float e = k * q.q / (l * l * l);
-		if (e > maxForce) {
-			fx = fy = maxForce;
-		} else {
-			fx *= e;
-			fy *= e;
-		}
+		float e = k * q.q * rsqrt(l * l * l);
+		//	if (e > maxForce) {
+		//		fx = fy = maxForce;
+		//	} else {
+		fx *= e;
+		fy *= e;
+		//	}
 	}
 
 	__device__ force operator +(const force& f) const {
@@ -155,7 +154,6 @@ __global__ void renderFrame(uchar4* screen) {
 		temp_f.calculate(dev_charges[i], x, y);
 		f += temp_f;
 	}
-
 	screen[x + y * width] = getColor(f);
 }
 
