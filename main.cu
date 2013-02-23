@@ -51,6 +51,7 @@ void key(unsigned char key, int x, int y) {
 	switch (key) {
 	case 27:
 		printf("Exit application\n");
+
 		glutLeaveMainLoop();
 		break;
 	}
@@ -162,7 +163,16 @@ void createVBO(GLuint *vbo, struct cudaGraphicsResource **vbo_res,
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, *vbo);
 	glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW);
 
-	cudaGraphicsGLRegisterBuffer(vbo_res, *vbo, vbo_res_flags);
+	HANDLE_ERROR(cudaGraphicsGLRegisterBuffer(vbo_res, *vbo, vbo_res_flags));
+}
+
+void deleteVBO(GLuint *vbo, struct cudaGraphicsResource *vbo_res) {
+	HANDLE_ERROR(cudaGraphicsUnregisterResource(cuda_vbo_resource));
+
+	glBindBuffer(1, *vbo);
+	glDeleteBuffers(1, vbo);
+
+	*vbo = 0;
 }
 
 void pushCharge(int x, int y) {
@@ -182,8 +192,10 @@ void pushCharge(int x, int y) {
 			charges[chargeCount - 1].x, charges[chargeCount - 1].y,
 			charges[chargeCount - 1].z);
 
-	HANDLE_ERROR(cudaMemcpyToSymbol(dev_charges, charges, chargeCount * sizeof(float3)));
-	HANDLE_ERROR(cudaMemcpyToSymbol(dev_chargeCount, &chargeCount, sizeof(chargeCount)));
+	HANDLE_ERROR(
+			cudaMemcpyToSymbol(dev_charges, charges, chargeCount * sizeof(float3)));
+	HANDLE_ERROR(
+			cudaMemcpyToSymbol(dev_chargeCount, &chargeCount, sizeof(chargeCount)));
 	printf("Charges %d\n", chargeCount);
 }
 
@@ -212,7 +224,8 @@ void mouseDrag(int x, int y) {
 		charges[selectedChargeIndex].x = x;
 		charges[selectedChargeIndex].y = height - y;
 
-		HANDLE_ERROR(cudaMemcpyToSymbol(dev_charges, charges, chargeCount * sizeof(float3)));
+		HANDLE_ERROR(
+				cudaMemcpyToSymbol(dev_charges, charges, chargeCount * sizeof(float3)));
 	}
 }
 
@@ -293,6 +306,8 @@ int main(int argc, char** argv) {
 	createVBO(&vbo, &cuda_vbo_resource, cudaGraphicsMapFlagsWriteDiscard);
 
 	glutMainLoop();
+
+	deleteVBO(&vbo, cuda_vbo_resource);
 
 	return 0;
 }
